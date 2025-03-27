@@ -47,11 +47,21 @@ void init_scheduler(void) {
  *  State representation   prio = 0 .. MAX_PRIO, curr_slot = 0..(MAX_PRIO - prio)
  */
 struct pcb_t * get_mlq_proc(void) {
-	struct pcb_t * proc = NULL;
-	/*TODO: get a process from PRIORITY [ready_queue].
-	 * Remember to use lock to protect the queue.
-	 * */
-	return proc;	
+    struct pcb_t * proc = NULL;
+    /*TODO: get a process from PRIORITY [ready_queue].
+     * Remember to use lock to protect the queue.
+     * */
+
+    pthread_mutex_lock(&queue_lock);
+    for(int idx = 0; idx < MAX_PRIO; idx++){
+        if(!empty(&mlq_ready_queue[idx])){
+            proc = dequeue(&mlq_ready_queue[idx]);
+            break;
+        }
+    }
+    pthread_mutex_unlock(&queue_lock);    
+
+    return proc;    
 }
 
 void put_mlq_proc(struct pcb_t * proc) {
@@ -71,24 +81,36 @@ struct pcb_t * get_proc(void) {
 }
 
 void put_proc(struct pcb_t * proc) {
-	proc->ready_queue = &ready_queue;
-	proc->mlq_ready_queue = mlq_ready_queue;
-	proc->running_list = & running_list;
+    proc->ready_queue = &ready_queue;
+    proc->mlq_ready_queue = mlq_ready_queue;
+    proc->running_list = & running_list;
 
-	/* TODO: put running proc to running_list */
+    /* TODO: put running proc to running_list */
+    if(!proc || proc->running_list->size >= MAX_QUEUE_SIZE){
+        return;
+    }
+    pthread_mutex_lock(&queue_lock);
+    enqueue(proc->running_list, proc);
+    pthread_mutex_unlock(&queue_lock);
 
-
-	return put_mlq_proc(proc);
+    return put_mlq_proc(proc);
 }
 
 void add_proc(struct pcb_t * proc) {
-	proc->ready_queue = &ready_queue;
-	proc->mlq_ready_queue = mlq_ready_queue;
-	proc->running_list = & running_list;
+    proc->ready_queue = &ready_queue;
+    proc->mlq_ready_queue = mlq_ready_queue;
+    proc->running_list = & running_list;
 
-	/* TODO: put running proc to running_list */
+    /* TODO: put running proc to running_list */
+    if(!proc || proc->running_list->size >= MAX_QUEUE_SIZE){
+        return;
+    }
 
-	return add_mlq_proc(proc);
+    pthread_mutex_lock(&queue_lock);
+    enqueue(proc->running_list, proc);
+    pthread_mutex_unlock(&queue_lock);
+
+    return add_mlq_proc(proc);
 }
 #else
 struct pcb_t * get_proc(void) {

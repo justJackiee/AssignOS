@@ -160,10 +160,20 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 
 int MEMPHY_dump(struct memphy_struct *mp)
 {
+   printf("===== PHYSICAL MEMORY DUMP =====\n"); //theo ouput
+   for (int i = 0; i < mp->maxsz; ++i) //duyet memory
+   {
+      if (mp->storage[i] != 0) //lay nhung byte !=0
+      { printf("BYTE %08x: %d\n", i, mp->storage[i]);
+      }
+   }
+   printf("===== PHYSICAL MEMORY END-DUMP =====\n");
+   printf("================================================================\n");
+    return 0;
   /*TODO dump memphy contnt mp->storage
    *     for tracing the memory content
    */
-   return 0;
+   
 }
 
 int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)

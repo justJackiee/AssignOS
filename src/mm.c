@@ -93,7 +93,14 @@ int vmap_page_range(struct pcb_t *caller,           // process call
   ret_rg->rg_start=addr;
   ret_rg->rg_end=addr + pgnum*PAGING_PAGESZ;
   while(pgit<pgnum && fpit!=NULL) {
-    
+    uint32_t *pte=&caller->mm->pgd[pgn+pgit];//lấy address của page in tablepage
+    pte_set_fpn(pte,fpit->fpn);
+
+    printf("pgd[%d] -> frame %d\n", pgn + pgit, fpit->fpn);
+
+    fpit=fpit->fp_next;//qua khung trang tiếp theo
+    enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);//đưa vào lập lịch
+    pgit++;
   }
 
   /* TODO: update the rg_end and rg_start of ret_rg 
@@ -109,9 +116,9 @@ int vmap_page_range(struct pcb_t *caller,           // process call
 
   /* Tracking for later page replacement activities (if needed)
    * Enqueue new usage page */
-  enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
+  // enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
 
-  return 0;
+  // return 0;
 }
 
 /*

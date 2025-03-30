@@ -87,8 +87,11 @@ int vmap_page_range(struct pcb_t *caller,           // process call
                     struct vm_rg_struct *ret_rg)    // return mapped region, the real mapped fp
 {                                                   // no guarantee all given pages are mapped
   //struct framephy_struct *fpit;
+  struct framephy_struct *fpit=frames;
   int pgit = 0;
   int pgn = PAGING_PGN(addr);
+  ret_rg->rg_start=addr;
+  ret_rg->rg_end=addr + pgnum*PAGING_PAGESZ;
 
   /* TODO: update the rg_end and rg_start of ret_rg 
   //ret_rg->rg_end =  ....

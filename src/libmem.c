@@ -181,59 +181,47 @@ int libfree(struct pcb_t *proc, uint32_t reg_index)
  *
  */
 int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
-{
+{//TODO
   uint32_t pte = mm->pgd[pgn];
 
   if (!PAGING_PAGE_PRESENT(pte))
-  { /* Page is not online, make it actively living */
+  { 
     int vicpgn, swpfpn; 
-    //int vicfpn;
-    //uint32_t vicpte;
+    int vicfpn;
+    uint32_t vicpte;
 
-    //int tgtfpn = PAGING_PTE_SWP(pte);//the target frame storing our variable
+    int tgtfpn = PAGING_PTE_SWP(pte);//the target frame storing our variable
 
-    /* TODO: Play with your paging theory here */
-    /* Find victim page */
-    find_victim_page(caller->mm, &vicpgn);
+    if(find_victim_page(caller->mm, &vicpgn)==-1){
+      return -1; 
+    }
+    if(MEMPHY_get_freefp(caller->active_mswp, &swpfpn)==-1) {
+      return -1; 
+    }
 
-    /* Get free frame in MEMSWP */
-    MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
+      vicpte = mm->pgd[vicpgn];
+      vicfpn = PAGING_PTE_FPN(vicpte);
 
-    /* TODO: Implement swap frame from MEMRAM to MEMSWP and vice versa*/
 
-    /* TODO copy victim frame to swap 
-     * SWP(vicfpn <--> swpfpn)
-     * SYSCALL 17 sys_memmap 
-     * with operation SYSMEM_SWP_OP
-     */
-    //struct sc_regs regs;
-    //regs.a1 =...
-    //regs.a2 =...
-    //regs.a3 =..
+    struct sc_regs regs1;
+    regs1.a1= SYSMEM_SWP_OP;
+    regs1.a2=vicfpn;
+    regs1.a3=swpfpn;
 
-    /* SYSCALL 17 sys_memmap */
+    __sys_memmap(caller,&regs1);
 
-    /* TODO copy target frame form swap to mem 
-     * SWP(tgtfpn <--> vicfpn)
-     * SYSCALL 17 sys_memmap
-     * with operation SYSMEM_SWP_OP
-     */
-    /* TODO copy target frame form swap to mem 
-    //regs.a1 =...
-    //regs.a2 =...
-    //regs.a3 =..
-    */
+    struct sc_regs regs2;
+    regs1.a1= SYSMEM_SWP_OP;
+    regs1.a2=tgtfpn;
+    regs1.a3=vicfpn;
 
-    /* SYSCALL 17 sys_memmap */
+    __sys_memmap(caller,&regs2);
 
-    /* Update page table */
-    //pte_set_swap() 
-    //mm->pgd;
 
-    /* Update its online status of the target page */
-    //pte_set_fpn() &
-    //mm->pgd[pgn];
-    //pte_set_fpn();
+
+      pte_set_swap(&mm->pgd[vicpgn], 0, swpfpn);
+      //vicfpn trống
+      pte_set_fpn(&mm->pgd[pgn], vicfpn); 
 
     enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
   }

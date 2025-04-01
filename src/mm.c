@@ -169,10 +169,8 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
         regs1.a1= SYSMEM_SWP_OP;
         regs1.a2=vicfpn;
         regs1.a3=swpfpn;
-        __sys_memmap(caller,&regs1);
+        __sys_memmap(caller,&regs1);//tự động gọi swap luôn 
 
-      
-        __swap_cp_page(caller->mram,vicfpn,caller->active_mswp,swpfpn);//hoán đổi
         pte_set_swap(&caller->mm->pgd[vicpgn],0,swpfpn);
         newfp_str->fpn=vicfpn;
       }

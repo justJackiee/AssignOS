@@ -432,12 +432,13 @@ int free_pcb_memph(struct pcb_t *caller)
  */
 int find_victim_page(struct mm_struct *mm, int *retpgn)
 {
-  struct pgn_t *pg = mm->fifo_pgn;
-
+  struct pgn_t *pg = mm->fifo_pgn;//lấy queue của page
+  if(pg==NULL) return -1;
+  *retpgn=pg->pgn; //lấy trang lâu nhất ko dùng 
+  mm->fifo_pgn=pg->pg_next;//update
   /* TODO: Implement the theorical mechanism to find the victim page */
 
   free(pg);
-
   return 0;
 }
 

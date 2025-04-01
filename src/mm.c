@@ -162,6 +162,16 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
 
         uint32_t vicpte=caller->mm->pgd[vicpgn]; //lấy thông tin bảng trang
         int vicfpn=PAGING_PTE_FPN(vicpte);//lấy số hiệu khung trang
+        
+      
+       //Thiết lập system call
+        struct sc_regs regs1;
+        regs1.a1= SYSMEM_SWP_OP;
+        regs1.a2=vicfpn;
+        regs1.a3=swpfpn;
+        __sys_memmap(caller,&regs1);
+
+      
         __swap_cp_page(caller->mram,vicfpn,caller->active_mswp,swpfpn);//hoán đổi
         pte_set_swap(&caller->mm->pgd[vicpgn],0,swpfpn);
         newfp_str->fpn=vicfpn;

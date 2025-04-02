@@ -239,8 +239,10 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
  */
 int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
 {
+
+  //TODO
   int pgn = PAGING_PGN(addr);
-  //int off = PAGING_OFFST(addr);
+  int off = PAGING_OFFST(addr);
   int fpn;
 
   /* Get the page to MEMRAM, swap from MEMSWAP if needed */
@@ -252,16 +254,20 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
    *  MEMPHY READ 
    *  SYSCALL 17 sys_memmap with SYSMEM_IO_READ
    */
-  // int phyaddr
-  //struct sc_regs regs;
-  //regs.a1 = ...
-  //regs.a2 = ...
-  //regs.a3 = ...
+  
+  int phyaddr=(fpn << PAGING_ADDR_FPN_LOBIT)+off;
+
+  struct sc_regs regs;
+  regs.a1 = SYSMEM_IO_READ;
+  regs.a2 = phyaddr;
+  regs.a3 = 0;
+  
+  __sys_memmap(caller,&regs);
 
   /* SYSCALL 17 sys_memmap */
 
   // Update data
-  // data = (BYTE)
+  data = (BYTE)regs.a3;
 
   return 0;
 }
@@ -274,12 +280,13 @@ int pg_getval(struct mm_struct *mm, int addr, BYTE *data, struct pcb_t *caller)
  */
 int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
 {
-  int pgn = PAGING_PGN(addr);
-  //int off = PAGING_OFFST(addr);
+  //TODO
+  int pgn = PAGING_PGN(addr);//lấy trang
+  int off = PAGING_OFFST(addr);//lấy offset 
   int fpn;
 
   /* Get the page to MEMRAM, swap from MEMSWAP if needed */
-  if (pg_getpage(mm, pgn, &fpn, caller) != 0)
+  if (pg_getpage(mm, pgn, &fpn, caller) != 0) 
     return -1; /* invalid page access */
 
   /* TODO
@@ -287,16 +294,19 @@ int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
    *  MEMPHY WRITE
    *  SYSCALL 17 sys_memmap with SYSMEM_IO_WRITE
    */
-  // int phyaddr
-  //struct sc_regs regs;
-  //regs.a1 = ...
-  //regs.a2 = ...
-  //regs.a3 = ...
+  
+  int phyaddr=(fpn << PAGING_ADDR_FPN_LOBIT)+off;//lấy địa chỉ vật lý của khung trang 
+  
+  struct sc_regs regs;
 
-  /* SYSCALL 17 sys_memmap */
+  regs.a1 = SYSMEM_IO_WRITE; 
+  regs.a2 = phyaddr;
+  regs.a3 = value;
+  
+  __sys_memmap(caller,&regs);
 
   // Update data
-  // data = (BYTE) 
+  data = (BYTE)regs.a2;
 
   return 0;
 }

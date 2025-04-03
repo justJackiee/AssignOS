@@ -134,7 +134,7 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
   struct framephy_struct *newfp_str = NULL;
     for (pgit = 0; pgit < req_pgnum; pgit++)
   {
-    newfp_str=(struct framephy_struct *) malloc(sizeof(framephy_struct));//tạo khung trang mới
+    newfp_str=(struct framephy_struct *) malloc(sizeof(struct framephy_struct));//tạo khung trang mới
 
   /* TODO: allocate the page 
    */

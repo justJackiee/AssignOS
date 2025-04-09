@@ -71,7 +71,10 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   /*Allocate at the toproof */
   struct vm_rg_struct rgnode;
 
-  /* TODO: commit the vmaid */
+  if(rgid < 0 || rgid > PAGING_MAX_SYMTBL_SZ)
+    return -1;
+  
+    /* TODO: commit the vmaid */
   // rgnode.vmaid
 
   if (get_free_vmrg_area(caller, vmaid, size, &rgnode) == 0)
@@ -137,8 +140,12 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
     return -1;
 
   /* TODO: Manage the collect freed region to freerg_list */
-  
-
+  // struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
+  struct vm_rg_struct rgnode = caller->mm->symrgtbl[rgid];
+  rgnode.rg_start = 0;
+  rgnode.rg_end = 0;
+  // struct vm_rg_struct *freeList = cur_vma->vm_freerg_list;
+  enlist_vm_freerg_list(caller->mm, &rgnode);
   /*enlist the obsoleted memory region */
   //enlist_vm_freerg_list();
 
@@ -462,8 +469,18 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
   /* TODO Traverse on list of free vm region to find a fit space */
   //while (...)
   // ..
-
-  return 0;
+  int minWaste = INT32_MAX;
+  while(rgit){
+    int rgSize = rgit->rg_end - rgit->rg_start;
+    if(rgSize >= size && rgSize < minWaste){
+      newrg->rg_start = rgit->rg_start;
+      newrg->rg_end = rgit->rg_end;
+      rgSize = rgit->rg_end - rgit->rg_start;
+    }
+    rgit = rgit->rg_next;
+  }
+  return (newrg->rg_end != -1 && newrg->rg_start != -1) ? 1 : 0;
+  // return 0;
 }
 
 //#endif

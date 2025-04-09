@@ -87,8 +87,21 @@ int vmap_page_range(struct pcb_t *caller,           // process call
                     struct vm_rg_struct *ret_rg)    // return mapped region, the real mapped fp
 {                                                   // no guarantee all given pages are mapped
   //struct framephy_struct *fpit;
+  struct framephy_struct *fpit=frames;
   int pgit = 0;
   int pgn = PAGING_PGN(addr);
+  ret_rg->rg_start=addr;
+  ret_rg->rg_end=addr + pgnum*PAGING_PAGESZ;
+  while(pgit<pgnum && fpit!=NULL) {
+    uint32_t *pte=&caller->mm->pgd[pgn+pgit];//lấy address của page in tablepage
+    pte_set_fpn(pte,fpit->fpn);
+
+    printf("pgd[%d] -> frame %d\n", pgn + pgit, fpit->fpn);
+
+    fpit=fpit->fp_next;//qua khung trang tiếp theo
+    enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);//đưa vào lập lịch
+    pgit++;
+  }
 
   /* TODO: update the rg_end and rg_start of ret_rg 
   //ret_rg->rg_end =  ....
@@ -103,9 +116,9 @@ int vmap_page_range(struct pcb_t *caller,           // process call
 
   /* Tracking for later page replacement activities (if needed)
    * Enqueue new usage page */
-  enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
+  // enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
 
-  return 0;
+  // return 0;
 }
 
 /*
@@ -119,26 +132,54 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
 {
   int pgit, fpn;
   struct framephy_struct *newfp_str = NULL;
-
-  /* TODO: allocate the page 
-  //caller-> ...
-  //frm_lst-> ...
-  */
-
-  for (pgit = 0; pgit < req_pgnum; pgit++)
+    for (pgit = 0; pgit < req_pgnum; pgit++)
   {
+    newfp_str=(struct framephy_struct *) malloc(sizeof(struct framephy_struct));//tạo khung trang mới
+
   /* TODO: allocate the page 
    */
-    if (MEMPHY_get_freefp(caller->mram, &fpn) == 0)
+    if (MEMPHY_get_freefp(caller->mram, &fpn) == 0)//nếu trống 
     {
       newfp_str->fpn = fpn;
     }
     else
-    { // TODO: ERROR CODE of obtaining somes but not enough frames
-    }
-  }
+    {
+      int vicpgn,swpfpn;
+      if(find_victim_page(caller->mm,&vicpgn)==-1||MEMPHY_get_freefp(caller->active_mswp,&swpfpn)==-1){
+        if(*frm_lst==NULL) {
+          printf("Error: Failed to allocate memory for framephy_struct.\n");
+          return -1;
+        }
+        else{
+          struct framephy_struct *freefp_str;
+          while(*frm_lst!=NULL){
+            freefp_str=*frm_lst;
+            *frm_lst=(*frm_lst)->fp_next;
+            free(freefp_str); }
+            return -2;
+          }
+        }
 
-  return 0;
+        uint32_t vicpte=caller->mm->pgd[vicpgn]; //lấy thông tin bảng trang
+        int vicfpn=PAGING_PTE_FPN(vicpte);//lấy số hiệu khung trang
+        
+      
+       //Thiết lập system call
+        struct sc_regs regs1;
+        regs1.a1= SYSMEM_SWP_OP;
+        regs1.a2=vicfpn;
+        regs1.a3=swpfpn;
+        __sys_memmap(caller,&regs1);//tự động gọi swap luôn 
+
+        pte_set_swap(&caller->mm->pgd[vicpgn],0,swpfpn);
+        newfp_str->fpn=vicfpn;
+      }
+      newfp_str->fp_next=*frm_lst;
+      *frm_lst=newfp_str;
+       // TODO: ERROR CODE of obtaining somes but not enough frames
+    }
+    printf("Successfully allocated %d pages.\n", req_pgnum);
+    return 0;
 }
 
 /*

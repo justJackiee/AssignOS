@@ -22,6 +22,8 @@ struct vm_rg_struct {
    unsigned long rg_start;
    unsigned long rg_end;
 
+   int vmaid;
+
    struct vm_rg_struct *rg_next;
 };
 

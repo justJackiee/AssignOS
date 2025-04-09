@@ -86,7 +86,7 @@
      printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
      printf("PID=%d - Region=%d - Address=%08lx - Size=%d byte\n", 
             caller->pid, rgid, rgnode.rg_start, size);
-     print_pgtbl(caller, rgnode.rg_start, rgnode.rg_end);
+     print_pgtbl(caller, rgnode.rg_start, -1);
      printf("================================================================\n");
      pthread_mutex_unlock(&mmvm_lock);
      return 0;

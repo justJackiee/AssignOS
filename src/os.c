@@ -10,9 +10,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifdef MM_PAGING
-#undef MM_PAGING
-#endif
+// #ifdef MM_PAGING
+// #undef MM_PAGING
+// #endif
 
 static int time_slot;
 static int num_cpus;

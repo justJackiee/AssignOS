@@ -144,8 +144,7 @@
   //  struct framephy_struct *newfp_str = NULL;
    struct framephy_struct *last_fp = NULL;
  
-   for (pgit = 0; pgit < req_pgnum; pgit++)
-   {
+   for (pgit = 0; pgit < req_pgnum; pgit++){
    /* TODO: allocate the page 
     */
      newfp_str = malloc(sizeof(struct framephy_struct));
@@ -157,6 +156,7 @@
      {
        newfp_str->fpn = fpn;
        newfp_str->fp_next = NULL;
+
        if(*frm_lst == NULL){
         *frm_lst = newfp_str;
        }
@@ -177,7 +177,7 @@
       *frm_lst = NULL;
       return -3000;
      }
-   }
+    }
  
    return 0;
  }

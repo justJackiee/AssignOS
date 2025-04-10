@@ -87,6 +87,11 @@
      printf("PID=%d - Region=%d - Address=%08lx - Size=%d byte\n", 
             caller->pid, rgid, rgnode.rg_start, size);
      print_pgtbl(caller, rgnode.rg_start, -1);
+     int i = 0;
+     while(caller->mm->pgd[i] != '\0'){
+      printf("Page Number: %d -> Frame Number: %d\n", i, (caller->mm->pgd[i] & 0x1FFF));
+      i += 1;
+     }
      printf("================================================================\n");
      pthread_mutex_unlock(&mmvm_lock);
      return 0;
@@ -153,6 +158,19 @@
    free_rg->rg_start = rgnode->rg_start;
    free_rg->rg_end = rgnode->rg_end;
    // free_rg->vmaid = rgnode->vmaid;
+
+  pthread_mutex_lock(&mmvm_lock);
+   printf("===== PHYSICAL MEMORY AFTER DEALLOCATION =====\n");
+   printf("PID=%d - Region=%d\n", 
+          caller->pid, rgid);
+   print_pgtbl(caller, 0, -1);
+   int i = 0;
+   while(caller->mm->pgd[i] != '\0'){
+    printf("Page Number: %d -> Frame Number: %d\n", i, (caller->mm->pgd[i] & 0x1FFF));
+    i += 1;
+   }
+   printf("================================================================\n");
+   pthread_mutex_unlock(&mmvm_lock);
    
    /* Add to free region list */
    if (enlist_vm_freerg_list(caller->mm, free_rg) != 0) {
@@ -360,21 +378,26 @@
  {
    BYTE data;
    int val = __read(proc, 0, source, offset, &data);
- 
+   printf("===== PHYSICAL MEMORY AFTER READING =====\n");
    /* TODO update result of reading action*/
    //destination 
  
   //  destination = (uint32_t)data;
-  *destination = data;
+  *destination = (uint32_t)data;
  
  #ifdef IODUMP
    printf("read region=%d offset=%d value=%d\n", source, offset, data);
  #ifdef PAGETBL_DUMP
    print_pgtbl(proc, 0, -1); //print max TBL
+   int i = 0;
+   while(proc->mm->pgd[i] != '\0'){
+    printf("Page Number: %d -> Frame Number: %d\n", i, (proc->mm->pgd[i] & 0x1FFF));
+    i += 1;
+   }
  #endif
    MEMPHY_dump(proc->mram);
  #endif
- 
+   printf("================================================================\n");
    return val;
  }
  
@@ -395,6 +418,14 @@
      return -1;
  
    pg_setval(caller->mm, currg->rg_start + offset, value, caller);
+
+   int i = 0;
+   while(caller->mm->pgd[i] != '\0'){
+    printf("Page Number: %d -> Frame Number: %d\n", i, (caller->mm->pgd[i] & 0x1FFF));
+    i += 1;
+   }
+   printf("================================================================\n");
+
  
    return 0;
  }
@@ -406,6 +437,7 @@
      uint32_t destination, // Index of destination register
      uint32_t offset)
  {
+  printf("===== PHYSICAL MEMORY AFTER WRITING =====\n");
  #ifdef IODUMP
    printf("write region=%d offset=%d value=%d\n", destination, offset, data);
  #ifdef PAGETBL_DUMP

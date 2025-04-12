@@ -24,8 +24,10 @@ struct pcb_t * dequeue(struct queue_t * q) {
                 return NULL;
         }
         int ret_idx = 0;
+        // int prociprio, retprocprio;
+// #ifdef MLQ_SCHED
         for(int i = 1; i < q->size; i++){
-                if(q->proc[i]->priority > q->proc[ret_idx]->priority){
+                if(q->proc[i]->prio > q->proc[ret_idx]->prio){
                         ret_idx = i;
                 }
         }

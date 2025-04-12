@@ -83,6 +83,7 @@
      caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
   
      *alloc_addr = rgnode.rg_start;
+     pthread_mutex_lock(&mmvm_lock);
      printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
      printf("PID=%d - Region=%d - Address=%08lx - Size=%d byte\n", 
             caller->pid, rgid, rgnode.rg_start, size);
@@ -96,7 +97,7 @@
      pthread_mutex_unlock(&mmvm_lock);
      return 0;
    }
- 
+  //  printf("co cc: %d\n", size);
    /* Handle region management when get_free_vmrg_area fails */
    struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
    if (!cur_vma) return -1;
@@ -128,6 +129,21 @@
    caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
    *alloc_addr = rgnode.rg_start;
  
+   pthread_mutex_lock(&mmvm_lock);
+   printf("===== PHYSICAL MEMORY AFTER ALLOCATION =====\n");
+   printf("PID=%d - Region=%d - Address=%08lx - Size=%d byte\n", 
+          caller->pid, rgid, rgnode.rg_start, size);
+   print_pgtbl(caller, rgnode.rg_start, -1);
+   int i = 0;
+   while(caller->mm->pgd[i] != '\0'){
+    printf("Page Number: %d -> Frame Number: %d\n", i, (caller->mm->pgd[i] & 0x1FFF));
+    // printf("Page Number: %d -> Frame Number: %d\n", i, (caller->mm->pgd[i] & 0x1FFF));
+    i += 1;
+   }
+   printf("================================================================\n");
+   pthread_mutex_unlock(&mmvm_lock);
+
+
    return 0;
  }
  
@@ -277,6 +293,54 @@
    return 0;
  }
  
+
+// int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller) {
+// 	uint32_t pte = mm->pgd[pgn];
+
+// 	if (!PAGING_PAGE_PRESENT(
+// 			pte)) { /* Page is not online, make it actively living */
+// 		int vicpgn, swpfpn;
+// 		int vicfpn;
+// 		uint32_t vicpte;
+
+// 		int tgtfpn = PAGING_SWP(pte); // the target frame storing our variable
+
+// 		/* TODO: Play with your paging theory here */
+// 		/* Find victim page */
+// 		if (find_victim_page(caller->mm, &vicpgn) == -1) {
+//             perror("find_victim_page failed, maybe no page allocated\n");
+//             return -1;
+//         }
+//         vicpte = caller->mm->pgd[vicpgn];
+//         vicfpn = PAGING_FPN(vicpte);
+
+// 		/* Get free frame in MEMSWP */
+// 		MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
+
+// 		/* Do swap frame from MEMRAM to MEMSWP and vice versa*/
+// 		/* Copy victim frame to swap */
+// 		__swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn);
+// 		/* Copy target frame from swap to mem */
+// 		__swap_cp_page(caller->active_mswp, tgtfpn, caller->mram, vicfpn);
+
+// 		/* Update page table */
+// 		pte_set_swap(&mm->pgd[vicpgn], 0, swpfpn);
+
+// 		/* Update its online status of the target page */
+// 		// pte_set_fpn() & mm->pgd[pgn];
+//         pte_set_fpn(&mm->pgd[pgn], vicfpn);
+
+// 		enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
+
+//         MEMPHY_put_freefp(caller->active_mswp, tgtfpn);
+// 	}
+
+// 	*fpn = PAGING_FPN(pte);
+
+// 	return 0;
+// }
+
+
  /*pg_getval - read value at given offset
   *@mm: memory region
   *@addr: virtual address to acess
@@ -312,41 +376,59 @@
  
    return 0;
  }
- 
+
+
  /*pg_setval - write value to given offset
   *@mm: memory region
   *@addr: virtual address to acess
   *@value: value
   *
   */
- int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
- {
-   int pgn = PAGING_PGN(addr);
-   //int off = PAGING_OFFST(addr);
+//  int pg_setval(struct mm_struct *mm, int addr, BYTE value, struct pcb_t *caller)
+//  {
+//    int pgn = PAGING_PGN(addr);
+//    //int off = PAGING_OFFST(addr);
  
-   int off = PAGING_OFFST(addr);
+//    int off = PAGING_OFFST(addr);
  
-   int fpn;
+//    int fpn;
  
-   /* Get the page to MEMRAM, swap from MEMSWAP if needed */
-   if (pg_getpage(mm, pgn, &fpn, caller) != 0)
-     return -1; /* invalid page access */
+//    /* Get the page to MEMRAM, swap from MEMSWAP if needed */
+//    if (pg_getpage(mm, pgn, &fpn, caller) != 0)
+//      return -1; /* invalid page access */
  
-   // Calculate physical address from frame page number and offset
-   int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
+//    // Calculate physical address from frame page number and offset
+//    int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
  
-   // Setup syscall registers
-   struct sc_regs regs;
-   regs.a1 = SYSMEM_IO_WRITE;  // Operation type
-   regs.a2 = phyaddr;          // Physical address to write to
-   regs.a3 = value;            // Value to write
+//    // Setup syscall registers
+//    struct sc_regs regs;
+//    regs.a1 = SYSMEM_IO_WRITE;  // Operation type
+//    regs.a2 = phyaddr;          // Physical address to write to
+//    regs.a3 = value;            // Value to write
  
-   // Execute syscall 17 (sys_memmap) to write memory
-   int ret = syscall(caller, 17, &regs);
-   if (ret < 0) return -1;
+//    // Execute syscall 17 (sys_memmap) to write memory
+//    int ret = syscall(caller, 17, &regs);
+//    if (ret < 0) return -1;
  
-   return 0;
- }
+//    return 0;
+//  }
+
+int pg_setval(struct mm_struct *mm, int addr, BYTE value,
+  struct pcb_t *caller) {
+  int pgn = PAGING_PGN(addr);
+  int off = PAGING_OFFST(addr);
+  int fpn;
+
+  /* Get the page to MEMRAM, swap from MEMSWAP if needed */
+  if (pg_getpage(mm, pgn, &fpn, caller) != 0)
+  return -1; /* invalid page access */
+
+  int phyaddr = (fpn << PAGING_ADDR_FPN_LOBIT) + off;
+
+  MEMPHY_write(caller->mram, phyaddr, value);
+
+  return 0;
+}
  
  /*__read - read value in region memory
   *@caller: caller
@@ -378,7 +460,9 @@
  {
    BYTE data;
    int val = __read(proc, 0, source, offset, &data);
+   pthread_mutex_lock(&mmvm_lock);
    printf("===== PHYSICAL MEMORY AFTER READING =====\n");
+   pthread_mutex_unlock(&mmvm_lock);
    /* TODO update result of reading action*/
    //destination 
  
@@ -397,7 +481,9 @@
  #endif
    MEMPHY_dump(proc->mram);
  #endif
+   pthread_mutex_lock(&mmvm_lock);
    printf("================================================================\n");
+   pthread_mutex_unlock(&mmvm_lock);
    return val;
  }
  
@@ -419,13 +505,14 @@
  
    pg_setval(caller->mm, currg->rg_start + offset, value, caller);
 
+   pthread_mutex_lock(&mmvm_lock);
    int i = 0;
    while(caller->mm->pgd[i] != '\0'){
     printf("Page Number: %d -> Frame Number: %d\n", i, (caller->mm->pgd[i] & 0x1FFF));
     i += 1;
    }
    printf("================================================================\n");
-
+   pthread_mutex_unlock(&mmvm_lock);
  
    return 0;
  }
@@ -437,7 +524,9 @@
      uint32_t destination, // Index of destination register
      uint32_t offset)
  {
+  pthread_mutex_lock(&mmvm_lock);
   printf("===== PHYSICAL MEMORY AFTER WRITING =====\n");
+  pthread_mutex_unlock(&mmvm_lock);
  #ifdef IODUMP
    printf("write region=%d offset=%d value=%d\n", destination, offset, data);
  #ifdef PAGETBL_DUMP

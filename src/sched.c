@@ -120,6 +120,7 @@ struct pcb_t * get_proc(void) {
 	/*TODO: get a process from [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
+	proc = dequeue(&ready_queue);
 	return proc;
 }
 

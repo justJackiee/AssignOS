@@ -111,6 +111,7 @@
      }
      int fpn = fpit->fpn;
      uint32_t* pte = &caller->mm->pgd[pgn + pgit];
+    //  printf("vmpagerange\n");
      pte_set_fpn(pte, fpn);
      fpit = fpit->fp_next;
      enlist_pgn_node(&caller->mm->fifo_pgn, pgn + pgit);
@@ -134,7 +135,7 @@
  int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct **frm_lst)
  {
    int pgit, fpn;
-   struct framephy_struct *newfp_str = NULL;
+   struct framephy_struct *head = NULL;
  
    /* TODO: allocate the page 
    //caller-> ...
@@ -142,43 +143,45 @@
    */
 
   //  struct framephy_struct *newfp_str = NULL;
-   struct framephy_struct *last_fp = NULL;
+  //  struct framephy_struct *last_fp = NULL;
  
    for (pgit = 0; pgit < req_pgnum; pgit++){
    /* TODO: allocate the page 
     */
-     newfp_str = malloc(sizeof(struct framephy_struct));
-     if (newfp_str == NULL){
-      return -1;
-     }
+    //  newfp_str = malloc(sizeof(struct framephy_struct));
+    //  if (newfp_str == NULL){
+    //   return -1;
+    //  }
 
      if (MEMPHY_get_freefp(caller->mram, &fpn) == 0)
      {
-       newfp_str->fpn = fpn;
-       newfp_str->fp_next = NULL;
-
-       if(*frm_lst == NULL){
-        *frm_lst = newfp_str;
-       }
-       else{
-        last_fp->fp_next = newfp_str;
-       }
-       last_fp = newfp_str;
+        struct framephy_struct *newfp = malloc(sizeof(struct framephy_struct));
+        newfp->fpn = fpn;
+        newfp->owner = caller->mm;
+        newfp->fp_next = head;
+        head = newfp;
+      //  if(*frm_lst == NULL){
+      //   *frm_lst = newfp_str;
+      //  }
+      //  else{
+      //   last_fp->fp_next = newfp_str;
+      //  }
+      //  last_fp = newfp_str;
      }
      else
      { // TODO: ERROR CODE of obtaining somes but not enough frames
-      struct framephy_struct *temp = *frm_lst;
-      while (temp != NULL) {
-          struct framephy_struct *next = temp->fp_next;
-          free(temp);
-          temp = next;
-      }
-      free(newfp_str);
-      *frm_lst = NULL;
+      // struct framephy_struct *temp = *frm_lst;
+      // while (temp != NULL) {
+      //     struct framephy_struct *next = temp->fp_next;
+      //     free(temp);
+      //     temp = next;
+      // }
+      // free(newfp_str);
+      // *frm_lst = NULL;
       return -3000;
      }
     }
- 
+    *frm_lst = head;
    return 0;
  }
  

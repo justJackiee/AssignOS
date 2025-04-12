@@ -204,6 +204,7 @@ int main(int argc, char * argv[]) {
 		printf("Usage: os [path to configure file]\n");
 		return 1;
 	}
+	// freopen("outputcc", "w", stdout);
 	char path[100];
 	path[0] = '\0';
 	strcat(path, "input/");
